@@ -13,17 +13,17 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
         // console.log("Checkpoint 1");
         const token = req.cookies.accessToken || req.headers.authorization?.replace("Bearer ", "");
 
-        if (!token) throw new ApiError(401, "Un-authorized request!");
+        if (!token) return res.status(401).json(new ApiError(401, "Un-authorized request!"));
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as jwtInterface;
 
-        if (!decodedToken) throw new ApiError(401, "Un-authorized request!");
+        if (!decodedToken) return res.status(401).json(new ApiError(401, "Un-authorized request!"));
         // console.log(decodedToken._id);
         const user = await Investor.findOne({ _id: decodedToken._id });
-        if (!user) throw new ApiError(404, "Unable to find user, Please login again..");
+        if (!user) return res.status(404).json(new ApiError(404, "Unable to find user, Please login again.."));
 
         // console.log("Checkpoint 1");
-        // req.user = user;
+        req.user = user;
         next();
     } catch (error) {
         console.log("ERROR: ", error);
