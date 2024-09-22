@@ -2,7 +2,7 @@ import mongoose, { Document } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 
-interface IInvestor extends Document {
+export interface IInvestor extends Document {
     name: string;
     email: string;
     password: string;
