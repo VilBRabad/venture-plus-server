@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { ApiError, ApiResponse } from "../utils";
 import { Company } from "../models/company.model";
-
+import { History } from "../models/investorHistory.model";
+import mongoose from "mongoose";
 
 type filterType = {
     CompanyStateCode?: string;
@@ -10,6 +11,7 @@ type filterType = {
 }
 
 const getCompanies = async (req: Request, res: Response) => {
+
     try {
         const page: number = Number(req.query.page) || 1;
         const limit: number = Number(req.query.limit) || 10;
@@ -22,6 +24,8 @@ const getCompanies = async (req: Request, res: Response) => {
         if (category) filters.CompanyClass = category as string;
         if (capital) filters.AuthorizedCapital = capital as string;
 
+
+        // console.log(filters);
         const skip: number = (page - 1) * limit;
 
         const companies = await Company.aggregate([
@@ -36,6 +40,8 @@ const getCompanies = async (req: Request, res: Response) => {
             },
         ]);
 
+        // console.log(companies);
+
         return res.status(200).json(new ApiResponse(200, { companies }));
 
     } catch (error) {
@@ -45,11 +51,13 @@ const getCompanies = async (req: Request, res: Response) => {
 
 const searchCompany = async (req: Request, res: Response) => {
     try {
-        const { search, page = 1, limit = 10 } = req.query;
+        const { search } = req.query;
+        const page: number = Number(req.query.page) || 1;
+        const limit: number = Number(req.query.limit) || 10;
 
         if (!search) return res.status(400).json(new ApiError(400, "Search input must be!"));
 
-        const skip: number = (Number(page) - 1) * Number(limit);
+        const skip: number = (page - 1) * limit;
 
         const companies = await Company.aggregate([
             {
@@ -63,14 +71,26 @@ const searchCompany = async (req: Request, res: Response) => {
                 $skip: skip
             },
             {
-                $limit: limit as number
+                $limit: limit
             }
         ])
+        // console.log(companies);
 
+        const user = req.user;
+        if(user){
+            const history = await History.create({
+                historyType: 'search',
+                searchText: search,
+            });
 
+            user.history?.push(new mongoose.Types.ObjectId(history._id as string));
+            await user.save({validateBeforeSave: false});
+        }
+        
         return res.status(200).json(new ApiResponse(200, { companies }))
 
     } catch (error) {
+        console.log(error);
         return res.status(500).json(new ApiError(500));
     }
 }
@@ -85,7 +105,17 @@ const getCompanyByCIN = async (req: Request, res: Response) => {
 
         if (!company) return res.status(404).json(new ApiError(404, "Invalid cin number"));
 
+        const user = req.user;
+        if(user){
+            const history = await History.create({
+                historyType: 'profile',
+                company: new mongoose.Types.ObjectId(company._id as string),
+                searchText: cin
+            })
 
+            user.history?.push(new mongoose.Types.ObjectId(history._id as string));
+            await user.save({validateBeforeSave: false});
+        }
 
         return res.status(200).json(new ApiResponse(200, { company }));
 

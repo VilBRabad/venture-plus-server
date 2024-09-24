@@ -1,4 +1,4 @@
-class ApiError extends Error {
+class ApiError {
     statusCode: number;
     errors: never[];
     message: string;
@@ -8,7 +8,6 @@ class ApiError extends Error {
         message = "Server error!",
         errors = [],
     ) {
-        super(message);
         this.statusCode = statusCode;
         this.message = message;
         this.errors = errors;
