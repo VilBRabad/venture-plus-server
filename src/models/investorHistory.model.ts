@@ -9,7 +9,7 @@ interface IHistory extends Document {
 
 const historySchema = new mongoose.Schema<IHistory>({
     historyType: {
-        type: String, // it may: search, going on company profile
+        type: String, // it may: search or going on company profile
     },
     company: {
         type: mongoose.Types.ObjectId,
@@ -17,12 +17,7 @@ const historySchema = new mongoose.Schema<IHistory>({
     },
     searchText: {
         type: String
-    },
-    filtersBySearched: [
-        {
-            type: String,
-        }
-    ]
+    }
 }, { timestamps: true });
 
 

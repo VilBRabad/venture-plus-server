@@ -16,8 +16,10 @@ app.use(express.json({ limit: "16kb" }));
 
 import userRouter from "./routes/investor.routes";
 import companyRouter from "./routes/company.routes";
+import organizationRouter from "./routes/organization.routes";
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/company", companyRouter);
+app.use("/api/v1/organization", organizationRouter);
 
 export { app };

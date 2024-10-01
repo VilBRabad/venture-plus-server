@@ -13,17 +13,11 @@ const investorProfileSchema = new mongoose.Schema<IInvestorProfile>({
     focus: {
         type: String,
     },
-    investmentStage: {
-        type: String,
-    },
     fundingAmount: {
         type: String,
     },
     geographicPreferences: {
         type: String,
-    },
-    strategicAlignment: {
-        type: String
     },
     investor: {
         type: mongoose.Types.ObjectId,

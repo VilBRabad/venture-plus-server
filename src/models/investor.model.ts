@@ -10,6 +10,7 @@ export interface IInvestor extends Document {
     profile?: mongoose.Types.ObjectId;
     messages?: mongoose.Types.ObjectId[];
     history?: mongoose.Types.ObjectId[];
+    saveList?: mongoose.Types.ObjectId[];
     paymentsForContactDetails?: mongoose.Types.ObjectId[];
     isPasswordCorrect(password: string): Promise<boolean>;
     generateAccessToken(): Promise<string>;
@@ -55,6 +56,12 @@ const investorSchema = new mongoose.Schema<IInvestor>({
         {
             type: mongoose.Types.ObjectId,
             ref: "Payment"
+        }
+    ],
+    saveList: [
+        {
+            type: mongoose.Types.ObjectId,
+            ref: 'Company'
         }
     ]
 }, { timestamps: true });
