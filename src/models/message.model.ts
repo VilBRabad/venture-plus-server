@@ -13,7 +13,7 @@ const messageSchema = new mongoose.Schema<IMessage>({
     },
     receiver: {
         type: mongoose.Types.ObjectId,
-        ref: "Company"
+        ref: "Organization"
     },
     content: {
         type: String,

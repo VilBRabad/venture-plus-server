@@ -13,7 +13,7 @@ const historySchema = new mongoose.Schema<IHistory>({
     },
     company: {
         type: mongoose.Types.ObjectId,
-        ref: "Company"
+        ref: "Organization"
     },
     searchText: {
         type: String

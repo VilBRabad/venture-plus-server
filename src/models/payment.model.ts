@@ -14,7 +14,7 @@ const paymentSchema = new mongoose.Schema<IPayment>({
     },
     company: {
         type: mongoose.Types.ObjectId,
-        ref: "Company"
+        ref: "Organization"
     },
     amount: {
         type: Number

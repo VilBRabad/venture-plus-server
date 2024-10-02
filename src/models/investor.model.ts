@@ -61,7 +61,7 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     saveList: [
         {
             type: mongoose.Types.ObjectId,
-            ref: 'Company'
+            ref: 'Organization'
         }
     ]
 }, { timestamps: true });

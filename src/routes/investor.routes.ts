@@ -6,7 +6,8 @@ import {
     loginUser,
     logoutUser,
     registerUser,
-    updateProfile
+    updateProfile,
+    addInSaveList
 } from "../controllers/investor.controller";
 import verifyJWT from "../middlewares/auth.middleware";
 import { getAllMessages, sendMessage } from "../controllers/message.controller";
@@ -22,5 +23,6 @@ router.post("/update-profile", verifyJWT, updateProfile);
 // Secured messaging routes
 router.post("/send-message", verifyJWT, sendMessage);
 router.get("/get-all-messages", verifyJWT, getAllMessages);
+router.post("/add-in-savelist", verifyJWT, addInSaveList);
 
 export default router;

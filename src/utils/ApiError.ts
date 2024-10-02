@@ -1,16 +1,31 @@
-class ApiError {
+class ApiError extends Error {
     statusCode: number;
     errors: never[];
-    message: string;
 
     constructor(
         statusCode: number,
         message = "Server error!",
-        errors = [],
+        errors: never[] = []
     ) {
+        super(message);
         this.statusCode = statusCode;
-        this.message = message;
         this.errors = errors;
+
+        this.name = this.constructor.name;
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        }
+    }
+
+    // Custom toJSON method to include the message property in the JSON response
+    toJSON() {
+        return {
+            statusCode: this.statusCode,
+            message: this.message,  // Ensure message is included
+            errors: this.errors,
+            name: this.name,
+        };
     }
 }
 

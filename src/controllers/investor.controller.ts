@@ -12,8 +12,11 @@ const options = {
 }
 
 const registerUser = async (req: Request, res: Response) => {
+    console.log("Connn....");
     try {
         const { name, email, password } = req.body;
+
+        console.log(name, email, password);
 
         if (!name || !email || !password) return res.status(400).json(new ApiError(400, "All fields required!"));
 
@@ -127,9 +130,28 @@ const updateProfile = async (req: Request, res: Response) => {
 }
 
 
+const addInSaveList = async (req: Request, res: Response) => {
+    try {
+        const user = req.user;
+        if (!user) return res.status(401).json(new ApiError(401, "Un-authorised request!"));
+
+        const { company } = req.body;
+
+        user.saveList?.push(new mongoose.Types.ObjectId(company as string));
+
+        user.save({ validateBeforeSave: false });
+
+        return res.status(201).json(new ApiResponse(201, {}));
+    } catch (error) {
+        return res.status(500).json(new ApiError(500));
+    }
+}
+
+
 export {
     registerUser,
     loginUser,
     logoutUser,
-    updateProfile
+    updateProfile,
+    addInSaveList
 }
