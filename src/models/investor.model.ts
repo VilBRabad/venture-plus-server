@@ -53,7 +53,6 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     history: [
         {
             type: mongoose.Types.ObjectId,
-            unique: true
         }
     ],
     paymentsForContactDetails: [
@@ -65,7 +64,6 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     saveList: [
         {
             type: mongoose.Types.ObjectId,
-            unique: true
         }
     ]
 }, { timestamps: true });

@@ -111,36 +111,42 @@ const getCompanyNames = async (req: Request, res: Response) => {
 }
 
 
-const getIndustries = async (req: Request, res: Response) => {
-    // try {
-    //     const { search } = req.body;
+const getIndustryTypes = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+        // console.log(search);
+        const searchText = `${search}`;
+        const regex = new RegExp(searchText, 'i');
 
-    //     console.log("Conn..");
+        const industries = await Organization.aggregate([
+            {
+                $match: {
+                    Industry: { $regex: regex }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    allIndustry: { $addToSet: "$Industry" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    allIndustry: {
+                        $slice: ["$allIndustry", 5]
+                    }
+                }
+            }
+        ])
 
-    //     const orgsNames = await Organization.find({}).select("industries -_id").lean();
 
-    //     // console.log(orgsNames);
-    //     const data = new Set<string>();
+        return res.status(201).json(new ApiResponse(201, { industries: industries[0].allIndustry }));
 
-    //     orgsNames.filter(org => {
-    //         if (org.industries && org.industries.trim() !== '') {
-    //             const s: string = org.industries
-    //             const inds = s.split(',');
-    //             inds.forEach(ind =>
-    //                 data.add(ind.trim())
-    //             );
-    //             return org.industries;
-    //         }
-    //     });
-
-    //     // console.log(data);
-
-
-    //     return res.status(201).json(new ApiResponse(201, { data: Array.from(data) }));
-
-    // } catch (error) {
-    //     return res.status(500).json(new ApiError(500));
-    // }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new ApiError(500));
+    }
 }
 
 
@@ -149,5 +155,5 @@ export {
     getOrganizationById,
     getOrganizationByName,
     getCompanyNames,
-    getIndustries
+    getIndustryTypes
 }
