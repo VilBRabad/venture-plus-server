@@ -1,84 +1,123 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { Document, Schema, model } from 'mongoose';
+
 
 interface IOrganization extends Document {
-    name: string;
-    type?: string;
-    primary_role?: string;
-    cb_url?: string;
-    domain?: string;
-    homepage_url?: string;
-    logo_url?: string;
-    facebook_url?: string;
-    twitter_url?: string;
-    linkedin_url?: string;
-    city?: string;
-    region?: string;
-    country_code?: string;
-    short_description: string;
-    industries?: string;
-    founded_date?: Date;
-    founders?: string;
-    no_emp?: string;
+    Company: string;
+    Company_name_for_email?: string;
+    Account_stage?: string;
+    Employees?: number;
+    Industry?: string;
+    Website?: string;
+    Linkedin_url?: string;
+    Facebook_url?: string;
+    Twitter_url?: string;
+    City?: string;
+    State?: string;
+    Country?: string;
+    Postal_code?: string;
+    Address?: string;
+    Keywords?: string[];
+    Phone_number?: string;
+    Technologies?: string[];
+    Total_funding?: number;
+    Latest_funding?: string;
+    Latest_funding_amount?: number;
+    Last_raised_at?: Date;
+    Annual_revenue?: number;
+    SIC_codes?: string;
+    Short_description?: string;
+    Founded_year?: number;
+    logo?: string;
+    Stock_symbol?: string
 }
 
-const OrganizationSchema = new Schema<IOrganization>({
-    name: {
+
+const organizationSchema = new Schema<IOrganization>({
+    Company: {
         type: String,
         required: true
+
     },
-    type: {
+    Company_name_for_email: {
         type: String,
     },
-    primary_role: {
+    Account_stage: {
         type: String,
     },
-    cb_url: {
+    Employees: {
+        type: Number,
+    },
+    Industry: {
         type: String,
     },
-    domain: {
+    Website: {
         type: String,
     },
-    homepage_url: {
+    Linkedin_url: {
         type: String,
     },
-    logo_url: {
+    Facebook_url: {
         type: String,
     },
-    facebook_url: {
+    Twitter_url: {
         type: String,
     },
-    twitter_url: {
+    City: {
         type: String,
     },
-    linkedin_url: {
+    State: {
         type: String,
     },
-    city: {
+    Country: {
         type: String,
     },
-    region: {
+    Postal_code: {
         type: String,
     },
-    country_code: {
+    Address: {
         type: String,
     },
-    short_description: {
-        type: String,
-        required: true
+    Keywords: {
+        type: [String]
     },
-    industries: {
+    Phone_number: {
         type: String,
     },
-    founded_date: {
+    Technologies: {
+        type: [String]
+    },
+    Total_funding: {
+        type: Number,
+    },
+    Latest_funding: {
+        type: String,
+    },
+    Latest_funding_amount: {
+        type: Number,
+    },
+    Last_raised_at: {
         type: Date,
     },
-    founders: {
+    Annual_revenue: {
+        type: Number,
+    },
+    SIC_codes: {
         type: String,
     },
-    no_emp: {
-        type: String
+    Short_description: {
+        type: String,
     },
+    Founded_year: {
+        type: Number,
+    },
+    logo: {
+        type: String,
+    },
+    Stock_symbol: {
+        type: String
+    }
 });
 
 
-export const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);
+export const Organization = model<IOrganization>('Organization', organizationSchema);
+

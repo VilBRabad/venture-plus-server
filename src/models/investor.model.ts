@@ -7,6 +7,7 @@ export interface IInvestor extends Document {
     email: string;
     password: string;
     refreshToken?: string;
+    address?: string;
     profile?: mongoose.Types.ObjectId;
     messages?: mongoose.Types.ObjectId[];
     history?: mongoose.Types.ObjectId[];
@@ -36,6 +37,9 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     refreshToken: {
         type: String,
     },
+    address: {
+        type: String
+    },
     profile: {
         type: mongoose.Types.ObjectId,
         ref: "InvestorProfile"
@@ -49,7 +53,7 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     history: [
         {
             type: mongoose.Types.ObjectId,
-            ref: "History"
+            unique: true
         }
     ],
     paymentsForContactDetails: [
@@ -61,7 +65,7 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     saveList: [
         {
             type: mongoose.Types.ObjectId,
-            ref: 'Organization'
+            unique: true
         }
     ]
 }, { timestamps: true });

@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { ApiError, ApiResponse } from "../utils";
 import { Organization } from "../models/organization.model";
-import { History } from "../models/investorHistory.model";
 import mongoose from "mongoose";
 
 const getOrganizations = async (req: Request, res: Response) => {
@@ -10,11 +9,6 @@ const getOrganizations = async (req: Request, res: Response) => {
 
 
         const orgs = await Organization.aggregate([
-            {
-                $sort: {
-                    name: asc === 1 ? 1 : -1
-                }
-            },
             {
                 $skip: (Number(page) - 1) * Number(limit)
             },
@@ -42,13 +36,7 @@ const getOrganizationById = async (req: Request, res: Response) => {
 
         const user = req.user;
         if (user) {
-            const history = await History.create({
-                historyType: 'profile',
-                company: new mongoose.Types.ObjectId(org._id as string),
-                searchText: _id
-            })
-
-            user.history?.push(new mongoose.Types.ObjectId(history._id as string));
+            user.history?.push(new mongoose.Types.ObjectId(_id as string));
             await user.save({ validateBeforeSave: false });
         }
 
@@ -61,45 +49,45 @@ const getOrganizationById = async (req: Request, res: Response) => {
 
 
 const getOrganizationByName = async (req: Request, res: Response) => {
-    try {
-        const { name } = req.query;
+    // try {
+    //     const { name } = req.query;
 
-        if (!name) return res.status(400).json(new ApiError(400, "Invalid name!"));
+    //     if (!name) return res.status(400).json(new ApiError(400, "Invalid name!"));
 
-        const orgs = await Organization.aggregate([
-            {
-                $match: {
-                    name: {
-                        $regex: new RegExp(name as string, 'i')
-                    }
-                }
-            },
-            {
-                $limit: 10
-            },
-            {
-                $sort: {
-                    name: 1
-                }
-            }
-        ]);
+    //     const orgs = await Organization.aggregate([
+    //         {
+    //             $match: {
+    //                 name: {
+    //                     $regex: new RegExp(name as string, 'i')
+    //                 }
+    //             }
+    //         },
+    //         {
+    //             $limit: 10
+    //         },
+    //         {
+    //             $sort: {
+    //                 name: 1
+    //             }
+    //         }
+    //     ]);
 
-        const user = req.user;
-        if (orgs && user) {
-            const history = await History.create({
-                historyType: 'search',
-                searchText: name,
-            });
+    //     const user = req.user;
+    //     if (orgs && user) {
+    //         const history = await History.create({
+    //             historyType: 'search',
+    //             searchText: name,
+    //         });
 
-            user.history?.push(new mongoose.Types.ObjectId(history._id as string));
-            await user.save({ validateBeforeSave: false });
-        }
+    //         user.history?.push(new mongoose.Types.ObjectId(history._id as string));
+    //         await user.save({ validateBeforeSave: false });
+    //     }
 
-        return res.status(201).json(new ApiResponse(201, { data: orgs }));
+    //     return res.status(201).json(new ApiResponse(201, { data: orgs }));
 
-    } catch (error) {
-        return res.status(500).json(new ApiError(500));
-    }
+    // } catch (error) {
+    //     return res.status(500).json(new ApiError(500));
+    // }
 }
 
 
@@ -108,13 +96,13 @@ const getCompanyNames = async (req: Request, res: Response) => {
         const { search } = req.query;
 
         const orgsNames = await Organization.find({
-            name: {
+            Company: {
                 $regex: new RegExp(search as string, 'i')
             }
-        }).select("name logo_url -_id");
+        }).limit(5).select("Company logo");
 
 
-        console.log(orgsNames);
+        // console.log(orgsNames);
 
         return res.status(201).json(new ApiResponse(201, { data: orgsNames }));
     } catch (error) {
@@ -124,35 +112,35 @@ const getCompanyNames = async (req: Request, res: Response) => {
 
 
 const getIndustries = async (req: Request, res: Response) => {
-    try {
-        const { search } = req.body;
+    // try {
+    //     const { search } = req.body;
 
-        console.log("Conn..");
+    //     console.log("Conn..");
 
-        const orgsNames = await Organization.find({}).select("industries -_id").lean();
+    //     const orgsNames = await Organization.find({}).select("industries -_id").lean();
 
-        // console.log(orgsNames);
-        const data = new Set<string>();
+    //     // console.log(orgsNames);
+    //     const data = new Set<string>();
 
-        orgsNames.filter(org => {
-            if (org.industries && org.industries.trim() !== '') {
-                const s: string = org.industries
-                const inds = s.split(',');
-                inds.forEach(ind =>
-                    data.add(ind.trim())
-                );
-                return org.industries;
-            }
-        });
+    //     orgsNames.filter(org => {
+    //         if (org.industries && org.industries.trim() !== '') {
+    //             const s: string = org.industries
+    //             const inds = s.split(',');
+    //             inds.forEach(ind =>
+    //                 data.add(ind.trim())
+    //             );
+    //             return org.industries;
+    //         }
+    //     });
 
-        // console.log(data);
+    //     // console.log(data);
 
 
-        return res.status(201).json(new ApiResponse(201, { data: Array.from(data) }));
+    //     return res.status(201).json(new ApiResponse(201, { data: Array.from(data) }));
 
-    } catch (error) {
-        return res.status(500).json(new ApiError(500));
-    }
+    // } catch (error) {
+    //     return res.status(500).json(new ApiError(500));
+    // }
 }
 
 

@@ -1,17 +1,15 @@
 import mongoose, { Document } from "mongoose";
 
 interface IInvestorProfile extends Document {
-    focus?: string;
-    investmentStage?: string;
+    focus?: string[];
     fundingAmount?: string;
     geographicPreferences?: string;
-    strategicAlignment?: string;
     investor?: mongoose.Types.ObjectId;
 }
 
 const investorProfileSchema = new mongoose.Schema<IInvestorProfile>({
     focus: {
-        type: String,
+        type: [String],
     },
     fundingAmount: {
         type: String,
