@@ -177,9 +177,47 @@ const getUserHistory = async (req: Request, res: Response) => {
 
         if (!user.history || user.history?.length === 0) throw new Error("Erro");
 
-        const history = await Organization.find({ _id: { $in: user.history } }).select("Company Industry City State Country Keywords logo");
+        const history = await Investor.aggregate([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(user._id as string)
+                }
+            },
+            {
+                $unwind: '$history'
+            },
+            {
+                $sort: {
+                    'history.createdAt': -1
+                }
+            },
+            {
+                $limit: 10
+            },
+            {
+                $lookup: {
+                    from: 'organizations',
+                    localField: 'history._id',
+                    foreignField: '_id',
+                    as: 'historyCompanies'
+                }
+            },
+            {
+                $unwind: '$historyCompanies'
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    historyCompanies: {
+                        $push: '$historyCompanies'
+                    }
+                }
+            }
+        ]);
 
-        return res.status(201).json(new ApiResponse(201, history));
+        // const history = await Organization.find({ _id: { $in: user.history } }).select("Company Industry City State Country Keywords logo");
+
+        return res.status(201).json(new ApiResponse(201, history[0].historyCompanies));
     } catch (error) {
         return res.status(500).json(new ApiError(500));
     }

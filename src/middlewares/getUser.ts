@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 const fetchUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const token = req.cookies.accessToken || req.headers.authorization?.replace("Bearer ", "");
-        console.log(token);
+        // console.log(token);
         if (!token) throw new Error("User not login");
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as jwtInterface;

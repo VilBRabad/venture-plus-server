@@ -4,18 +4,47 @@ import { Organization } from "../models/organization.model";
 import mongoose from "mongoose";
 
 const getOrganizations = async (req: Request, res: Response) => {
+    interface RequestBody {
+        page?: number;
+        limit?: number;
+        asc?: number;
+        industries?: string[];
+        countries?: string[];
+        revenue?: string;
+    }
     try {
-        const { page = 1, limit = 10, asc = 1 } = req.query;
+        const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" }: RequestBody = req.query;
+
+        const pipeline = []
+
+        if (industries && industries.length > 0) {
+            pipeline.push({
+                $match: {
+                    Industry: { $in: industries }
+                }
+            })
+        }
+        if (countries && countries.length > 0) {
+            pipeline.push({
+                $match: {
+                    Country: { $in: countries }
+                }
+            })
+        }
 
 
-        const orgs = await Organization.aggregate([
-            {
-                $skip: (Number(page) - 1) * Number(limit)
-            },
-            {
-                $limit: Number(limit)
-            }
-        ]);
+        if (revenue && revenue !== "") {
+            pipeline.push({
+                $match: {
+                    Annual_revenue: { $gte: Number(revenue) }
+                }
+            });
+        }
+
+        pipeline.push({ $skip: (Number(page) - 1) * Number(limit) })
+        pipeline.push({ $limit: Number(limit) })
+
+        const orgs = await Organization.aggregate(pipeline);
 
         return res.status(201).json(new ApiResponse(201, { data: orgs }));
     } catch (error) {
@@ -36,8 +65,19 @@ const getOrganizationById = async (req: Request, res: Response) => {
 
         const user = req.user;
         if (user) {
-            user.history?.push(new mongoose.Types.ObjectId(_id as string));
-            await user.save({ validateBeforeSave: false });
+            let isExists = false;
+            if (user.history) {
+                for (const histEl of user.history) {
+                    if (String(histEl._id) === _id) {
+                        isExists = true;
+                        break;
+                    }
+                }
+            }
+            if (!isExists) {
+                user.history?.push(new mongoose.Types.ObjectId(_id as string));
+                await user.save({ validateBeforeSave: false });
+            }
         }
 
         return res.status(201).json(new ApiResponse(201, { data: org }));
@@ -134,7 +174,7 @@ const getIndustryTypes = async (req: Request, res: Response) => {
                 $project: {
                     _id: 0,
                     allIndustry: {
-                        $slice: ["$allIndustry", 5]
+                        $slice: ["$allIndustry", 1000]
                     }
                 }
             }
@@ -144,16 +184,54 @@ const getIndustryTypes = async (req: Request, res: Response) => {
         return res.status(201).json(new ApiResponse(201, { industries: industries[0].allIndustry }));
 
     } catch (error) {
-        console.log(error);
+        // console.log(error);
         return res.status(500).json(new ApiError(500));
     }
 }
 
+
+const getCompanyLocations = async (req: Request, res: Response) => {
+    try {
+        const { search = "" } = req.query;
+        const searchText = `${search}`;
+        const regex = new RegExp(searchText, 'i');
+
+        const locationCountries = await Organization.aggregate([
+            {
+                $match: {
+                    Country: { $regex: regex }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    allLocations: { $addToSet: "$Country" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    allLocations: {
+                        $slice: ["$allLocations", 1000]
+                    }
+                }
+            }
+        ])
+
+
+        return res.status(201).json(new ApiResponse(201, { industries: locationCountries[0].allLocations }));
+
+    } catch (error) {
+        // console.log(error);
+        return res.status(500).json(new ApiError(500));
+    }
+}
 
 export {
     getOrganizations,
     getOrganizationById,
     getOrganizationByName,
     getCompanyNames,
-    getIndustryTypes
+    getIndustryTypes,
+    getCompanyLocations
 }

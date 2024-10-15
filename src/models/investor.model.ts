@@ -52,7 +52,13 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     ],
     history: [
         {
-            type: mongoose.Types.ObjectId,
+            _id: {
+                type: mongoose.Types.ObjectId
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
         }
     ],
     paymentsForContactDetails: [
@@ -64,6 +70,10 @@ const investorSchema = new mongoose.Schema<IInvestor>({
     saveList: [
         {
             type: mongoose.Types.ObjectId,
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
         }
     ]
 }, { timestamps: true });
