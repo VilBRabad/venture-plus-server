@@ -12,26 +12,66 @@ const getOrganizations = async (req: Request, res: Response) => {
         countries?: string[];
         revenue?: string;
     }
+
     try {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" }: RequestBody = req.query;
+        // const user = req.user;
+        const token = req.headers.authorization; // should be bearer token
 
-        const pipeline = []
+        if (token) {
+            const fetchResponse = await fetch("http://localhost:5000/recommend", {
+                headers: {
+                    'Authorization': token,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                method: "POST"
+            });
+
+            const resData = await fetchResponse.json();
+
+            const data = resData.data;
+            const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
+
+            if (data && Array.isArray(data) && data.length > 0) {
+                const companies = await Organization.aggregate([
+                    {
+                        $match: {
+                            _id: {
+                                $in: ids
+                            }
+                        }
+                    },
+                    {
+                        $limit: 20
+                    }
+                ]);
+
+                console.log("Companies: ", companies);
+
+                if (companies) {
+                    return res.status(201).json(new ApiResponse(201, { data: companies }));
+                }
+            }
+        }
+
+        const pipeline = [];
 
         if (industries && industries.length > 0) {
             pipeline.push({
                 $match: {
                     Industry: { $in: industries }
                 }
-            })
+            });
         }
+
         if (countries && countries.length > 0) {
             pipeline.push({
                 $match: {
                     Country: { $in: countries }
                 }
-            })
+            });
         }
-
 
         if (revenue && revenue !== "") {
             pipeline.push({
@@ -41,8 +81,8 @@ const getOrganizations = async (req: Request, res: Response) => {
             });
         }
 
-        pipeline.push({ $skip: (Number(page) - 1) * Number(limit) })
-        pipeline.push({ $limit: Number(limit) })
+        pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
+        pipeline.push({ $limit: Number(limit) });
 
         const orgs = await Organization.aggregate(pipeline);
 
@@ -51,6 +91,7 @@ const getOrganizations = async (req: Request, res: Response) => {
         return res.status(500).json(new ApiError(500));
     }
 }
+
 
 
 const getOrganizationById = async (req: Request, res: Response) => {
