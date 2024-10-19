@@ -3,55 +3,58 @@ import { ApiError, ApiResponse } from "../utils";
 import { Organization } from "../models/organization.model";
 import mongoose from "mongoose";
 
-const getOrganizations = async (req: Request, res: Response) => {
-    interface RequestBody {
-        page?: number;
-        limit?: number;
-        asc?: number;
-        industries?: string[];
-        countries?: string[];
-        revenue?: string;
-    }
+interface RequestBody {
+    page?: number;
+    limit?: number;
+    asc?: number;
+    industries?: string[];
+    countries?: string[];
+    revenue?: string;
+}
 
+const getOrganizations = async (req: Request, res: Response) => {
     try {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" }: RequestBody = req.query;
         // const user = req.user;
         const token = req.headers.authorization; // should be bearer token
 
-        if (token) {
-            const fetchResponse = await fetch("http://localhost:5000/recommend", {
-                headers: {
-                    'Authorization': token,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                method: "POST"
-            });
-
-            const resData = await fetchResponse.json();
-
-            const data = resData.data;
-            const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
-
-            if (data && Array.isArray(data) && data.length > 0) {
-                const companies = await Organization.aggregate([
-                    {
-                        $match: {
-                            _id: {
-                                $in: ids
-                            }
-                        }
+        if (token && industries.length === 0 && countries.length === 0 && !revenue) {
+            try {
+                const fetchResponse = await fetch("http://localhost:5000/recommend", {
+                    headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
-                    {
-                        $limit: 20
+                    method: "POST"
+                });
+                const resData = await fetchResponse.json();
+
+                const data = resData.data;
+                const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
+
+                if (data && Array.isArray(data) && data.length > 0) {
+                    const companies = await Organization.aggregate([
+                        {
+                            $match: {
+                                _id: {
+                                    $in: ids
+                                }
+                            }
+                        },
+                        {
+                            $limit: 20
+                        }
+                    ]);
+
+                    // console.log("Companies: ", companies);
+
+                    if (companies) {
+                        return res.status(201).json(new ApiResponse(201, { data: companies }));
                     }
-                ]);
-
-                console.log("Companies: ", companies);
-
-                if (companies) {
-                    return res.status(201).json(new ApiResponse(201, { data: companies }));
                 }
+            } catch (error) {
+                console.error("Microservice-1 is offline....!");
             }
         }
 

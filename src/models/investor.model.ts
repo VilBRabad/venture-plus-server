@@ -81,9 +81,16 @@ const investorSchema = new mongoose.Schema<IInvestor>({
 
 
 investorSchema.pre("save", async function (next) {
+    if (this.isModified("history")) {
+        if (this.history && this.history.length > 30) {
+            this.history = this.history.slice(-30);
+        }
+    }
+
     if (!this.isModified("password")) {
         return next();
     }
+
 
     this.password = await bcrypt.hash(this.password, 10);
     return next();

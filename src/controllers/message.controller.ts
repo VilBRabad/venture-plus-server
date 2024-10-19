@@ -3,19 +3,35 @@ import { ApiError, ApiResponse } from "../utils";
 import { Message } from "../models/message.model";
 import mongoose from "mongoose";
 
+
+interface linkeInterface {
+    title: string;
+    link: string;
+}
+
+interface Reqbody {
+    message?: string;
+    company?: string;
+    subject?: string;
+    links?: linkeInterface[];
+}
+
+
 const sendMessage = async (req: Request, res: Response) => {
     try {
-        const { message, company } = req.body;
+        const { message, company, subject, links = [] }: Reqbody = req.body;
         const user = req.user;
 
-        if (!message || !company) return res.status(400).json(new ApiError(400, "Message or company details invalid!"));
+        if (!message || !company || !subject) return res.status(400).json(new ApiError(400, "Message or company details invalid!"));
 
         if (!user) return res.status(401).json(new ApiError(401, "Un-authorised request!"));
 
         const createdMessage = await Message.create({
             sender: new mongoose.Types.ObjectId(user._id as string),
-            receiver: new mongoose.Types.ObjectId(company as string),
-            content: message
+            receiver: company,
+            subject: subject,
+            content: message,
+            links: links && links.length > 0 ? links : undefined
         });
 
         if (!createdMessage) return res.status(400).json(new ApiError(400, "Failed to send message"));
@@ -35,7 +51,7 @@ const sendMessage = async (req: Request, res: Response) => {
 const getAllMessages = async (req: Request, res: Response) => {
     try {
         const user = req.user;
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 20 } = req.query;
 
         if (!user) return res.status(401).json(new ApiError(401, "Un-authorised request!"));
 
@@ -45,6 +61,11 @@ const getAllMessages = async (req: Request, res: Response) => {
                 $match: {
                     sender: user._id,
                 },
+            },
+            {
+                $sort: {
+                    createdAt: -1
+                }
             },
             {
                 $skip: skip
