@@ -20,7 +20,7 @@ const getOrganizations = async (req: Request, res: Response) => {
 
         if (token && industries.length === 0 && countries.length === 0 && !revenue) {
             try {
-                const fetchResponse = await fetch("http://localhost:5000/recommend", {
+                const fetchResponse = await fetch(`${process.env.FLASK_SERVER_URL}/recommend`, {
                     headers: {
                         'Authorization': token,
                         'Content-Type': 'application/json',

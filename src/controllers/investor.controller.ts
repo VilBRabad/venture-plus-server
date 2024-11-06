@@ -11,6 +11,37 @@ const options = {
     path: '/',
 }
 
+function isValidEmail(email: string) {
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    return emailRegex.test(email);
+}
+
+function isValidPassword(password: string): { isValid: boolean; message: string } {
+    const passwordLenRegex = /^.{8,}$/;
+    const lowercaseRegex = /^[a-z]{1,}/;
+    const uppercaseRegex = /^[A-Z]{1,}/;
+    const digitRegex = /^[0-9]{1,}/;
+    const specialCharRegex = /^[@$!%*?&]{1,}/;
+
+    if (!passwordLenRegex.test(password)) {
+        return { isValid: false, message: "Password must be at least 8 characters long." };
+    }
+    if (!lowercaseRegex.test(password)) {
+        return { isValid: false, message: "Password must contain at least one lowercase." };
+    }
+    if(!uppercaseRegex.test(password)){
+        return { isValid: false, message: "Password must contain at least one uppercase." };
+    }
+    if(!digitRegex.test(password)){
+        return { isValid: false, message: "Password must contain at least one digit." };
+    }
+    if(!specialCharRegex.test(password)){
+        return { isValid: false, message: "Password must contain at least one special character [@, $, !, %, *, ?, &]." };
+    }
+
+    return { isValid: true, message: "Password is valid." };
+}
+
 const registerUser = async (req: Request, res: Response) => {
     try {
         const { name, email, password } = req.body;
@@ -18,6 +49,13 @@ const registerUser = async (req: Request, res: Response) => {
 
         if (!name || !email || !password) return res.status(400).json(new ApiError(400, "All fields required!"));
 
+        const isEmailValid = isValidEmail(email);
+        if(!isEmailValid) return res.status(400).json(new ApiError(400, "Invalid email address"));
+
+        const passwordValid = isValidPassword(password); 
+        if(!passwordValid.isValid) {
+            return res.status(400).json(new ApiError(400, passwordValid.message));
+        }
         //existance checking
         const existedUser = await Investor.findOne({ email });
 
