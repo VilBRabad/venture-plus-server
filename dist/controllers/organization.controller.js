@@ -16,12 +16,20 @@ exports.getCompanyLocations = exports.getIndustryTypes = exports.getCompanyNames
 const utils_1 = require("../utils");
 const organization_model_1 = require("../models/organization.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+function suffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" } = req.query;
         // const user = req.user;
         const token = req.headers.authorization; // should be bearer token
-        if (token && industries.length === 0 && countries.length === 0 && !revenue) {
+        let recommendedCompanies = [];
+        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1) {
             try {
                 const fetchResponse = yield fetch(`${process.env.FLASK_SERVER_URL}/recommend`, {
                     headers: {
@@ -35,11 +43,12 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 const data = resData.data;
                 const ids = data.map((id) => new mongoose_1.default.Types.ObjectId(id));
                 if (data && Array.isArray(data) && data.length > 0) {
+                    const suffleIds = suffleArray([...ids]);
                     const companies = yield organization_model_1.Organization.aggregate([
                         {
                             $match: {
                                 _id: {
-                                    $in: ids
+                                    $in: suffleIds
                                 }
                             }
                         },
@@ -48,8 +57,9 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                         }
                     ]);
                     // console.log("Companies: ", companies);
-                    if (companies) {
-                        return res.status(201).json(new utils_1.ApiResponse(201, { data: companies }));
+                    recommendedCompanies = companies;
+                    if (companies.length >= 7) {
+                        return res.status(201).json(new utils_1.ApiResponse(201, { data: companies, totalPages: 2 }));
                     }
                 }
             }
@@ -79,10 +89,19 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 }
             });
         }
+        const countResult = yield organization_model_1.Organization.aggregate([
+            ...pipeline,
+            {
+                $count: "totalCount"
+            }
+        ]);
+        const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
+        // Step 2: Calculate number of pages
+        const totalPages = Math.ceil(totalCount / limit);
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
         const orgs = yield organization_model_1.Organization.aggregate(pipeline);
-        return res.status(201).json(new utils_1.ApiResponse(201, { data: orgs }));
+        return res.status(201).json(new utils_1.ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages }));
     }
     catch (error) {
         return res.status(500).json(new utils_1.ApiError(500));
@@ -122,39 +141,27 @@ const getOrganizationById = (req, res) => __awaiter(void 0, void 0, void 0, func
 });
 exports.getOrganizationById = getOrganizationById;
 const getOrganizationByName = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // try {
-    //     const { name } = req.query;
-    //     if (!name) return res.status(400).json(new ApiError(400, "Invalid name!"));
-    //     const orgs = await Organization.aggregate([
-    //         {
-    //             $match: {
-    //                 name: {
-    //                     $regex: new RegExp(name as string, 'i')
-    //                 }
-    //             }
-    //         },
-    //         {
-    //             $limit: 10
-    //         },
-    //         {
-    //             $sort: {
-    //                 name: 1
-    //             }
-    //         }
-    //     ]);
-    //     const user = req.user;
-    //     if (orgs && user) {
-    //         const history = await History.create({
-    //             historyType: 'search',
-    //             searchText: name,
-    //         });
-    //         user.history?.push(new mongoose.Types.ObjectId(history._id as string));
-    //         await user.save({ validateBeforeSave: false });
-    //     }
-    //     return res.status(201).json(new ApiResponse(201, { data: orgs }));
-    // } catch (error) {
-    //     return res.status(500).json(new ApiError(500));
-    // }
+    try {
+        const { name } = req.query;
+        if (!name)
+            return res.status(400).json(new utils_1.ApiError(400, "Invalid name!"));
+        const orgs = yield organization_model_1.Organization.aggregate([
+            {
+                $match: {
+                    name: {
+                        $regex: new RegExp(name, 'i')
+                    }
+                }
+            },
+            {
+                $limit: 20
+            }
+        ]);
+        return res.status(201).json(new utils_1.ApiResponse(201, { data: orgs }));
+    }
+    catch (error) {
+        return res.status(500).json(new utils_1.ApiError(500));
+    }
 });
 exports.getOrganizationByName = getOrganizationByName;
 const getCompanyNames = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

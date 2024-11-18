@@ -29,13 +29,13 @@ function isValidPassword(password: string): { isValid: boolean; message: string 
     if (!lowercaseRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one lowercase." };
     }
-    if(!uppercaseRegex.test(password)){
+    if (!uppercaseRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one uppercase." };
     }
-    if(!digitRegex.test(password)){
+    if (!digitRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one digit." };
     }
-    if(!specialCharRegex.test(password)){
+    if (!specialCharRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one special character [@, $, !, %, *, ?, &]." };
     }
 
@@ -50,10 +50,10 @@ const registerUser = async (req: Request, res: Response) => {
         if (!name || !email || !password) return res.status(400).json(new ApiError(400, "All fields required!"));
 
         const isEmailValid = isValidEmail(email);
-        if(!isEmailValid) return res.status(400).json(new ApiError(400, "Invalid email address"));
+        if (!isEmailValid) return res.status(400).json(new ApiError(400, "Invalid email address"));
 
-        const passwordValid = isValidPassword(password); 
-        if(!passwordValid.isValid) {
+        const passwordValid = isValidPassword(password);
+        if (!passwordValid.isValid) {
             return res.status(400).json(new ApiError(400, passwordValid.message));
         }
         //existance checking

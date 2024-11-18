@@ -12,13 +12,23 @@ interface RequestBody {
     revenue?: string;
 }
 
+function suffleArray(array: string[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 const getOrganizations = async (req: Request, res: Response) => {
     try {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" }: RequestBody = req.query;
         // const user = req.user;
         const token = req.headers.authorization; // should be bearer token
 
-        if (token && industries.length === 0 && countries.length === 0 && !revenue) {
+        let recommendedCompanies = [];
+
+        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1) {
             try {
                 const fetchResponse = await fetch(`${process.env.FLASK_SERVER_URL}/recommend`, {
                     headers: {
@@ -34,11 +44,12 @@ const getOrganizations = async (req: Request, res: Response) => {
                 const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
 
                 if (data && Array.isArray(data) && data.length > 0) {
+                    const suffleIds = suffleArray([...ids]);
                     const companies = await Organization.aggregate([
                         {
                             $match: {
                                 _id: {
-                                    $in: ids
+                                    $in: suffleIds
                                 }
                             }
                         },
@@ -48,9 +59,10 @@ const getOrganizations = async (req: Request, res: Response) => {
                     ]);
 
                     // console.log("Companies: ", companies);
+                    recommendedCompanies = companies;
 
-                    if (companies) {
-                        return res.status(201).json(new ApiResponse(201, { data: companies }));
+                    if (companies.length >= 7) {
+                        return res.status(201).json(new ApiResponse(201, { data: companies, totalPages: 2 }));
                     }
                 }
             } catch (error) {
@@ -84,12 +96,25 @@ const getOrganizations = async (req: Request, res: Response) => {
             });
         }
 
+        const countResult = await Organization.aggregate([
+            ...pipeline,
+            {
+                $count: "totalCount"
+            }
+        ])
+
+
+        const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
+
+        // Step 2: Calculate number of pages
+        const totalPages = Math.ceil(totalCount / limit);
+
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
 
         const orgs = await Organization.aggregate(pipeline);
 
-        return res.status(201).json(new ApiResponse(201, { data: orgs }));
+        return res.status(201).json(new ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages }));
     } catch (error) {
         return res.status(500).json(new ApiError(500));
     }
@@ -133,45 +158,29 @@ const getOrganizationById = async (req: Request, res: Response) => {
 
 
 const getOrganizationByName = async (req: Request, res: Response) => {
-    // try {
-    //     const { name } = req.query;
+    try {
+        const { name } = req.query;
 
-    //     if (!name) return res.status(400).json(new ApiError(400, "Invalid name!"));
+        if (!name) return res.status(400).json(new ApiError(400, "Invalid name!"));
 
-    //     const orgs = await Organization.aggregate([
-    //         {
-    //             $match: {
-    //                 name: {
-    //                     $regex: new RegExp(name as string, 'i')
-    //                 }
-    //             }
-    //         },
-    //         {
-    //             $limit: 10
-    //         },
-    //         {
-    //             $sort: {
-    //                 name: 1
-    //             }
-    //         }
-    //     ]);
+        const orgs = await Organization.aggregate([
+            {
+                $match: {
+                    name: {
+                        $regex: new RegExp(name as string, 'i')
+                    }
+                }
+            },
+            {
+                $limit: 20
+            }
+        ]);
 
-    //     const user = req.user;
-    //     if (orgs && user) {
-    //         const history = await History.create({
-    //             historyType: 'search',
-    //             searchText: name,
-    //         });
+        return res.status(201).json(new ApiResponse(201, { data: orgs }));
 
-    //         user.history?.push(new mongoose.Types.ObjectId(history._id as string));
-    //         await user.save({ validateBeforeSave: false });
-    //     }
-
-    //     return res.status(201).json(new ApiResponse(201, { data: orgs }));
-
-    // } catch (error) {
-    //     return res.status(500).json(new ApiError(500));
-    // }
+    } catch (error) {
+        return res.status(500).json(new ApiError(500));
+    }
 }
 
 
