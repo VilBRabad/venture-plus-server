@@ -18,16 +18,16 @@ function isValidEmail(email: string) {
 
 function isValidPassword(password: string): { isValid: boolean; message: string } {
     const passwordLenRegex = /^.{8,}$/;
-    const lowercaseRegex = /^[a-z]{1,}/;
-    const uppercaseRegex = /^[A-Z]{1,}/;
-    const digitRegex = /^[0-9]{1,}/;
-    const specialCharRegex = /^[@$!%*?&]{1,}/;
+    const lowercaseRegex = /[a-z]/;
+    const uppercaseRegex = /[A-Z]/;
+    const digitRegex = /[0-9]/;
+    const specialCharRegex = /[@$!%*?&]/;
 
     if (!passwordLenRegex.test(password)) {
         return { isValid: false, message: "Password must be at least 8 characters long." };
     }
     if (!lowercaseRegex.test(password)) {
-        return { isValid: false, message: "Password must contain at least one lowercase." };
+        return { isValid: false, message: "Password must contain at least one lowercase letter." };
     }
     if (!uppercaseRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one uppercase." };
