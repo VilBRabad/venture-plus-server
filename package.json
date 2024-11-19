@@ -6,7 +6,8 @@
     "build": "tsc -p .",
     "start": "node dist/index.js",
     "stage": "tsc && git add .",
-    "dev": "tsc-watch --onSuccess \"npm run start\""
+    "dev": "tsc-watch --onSuccess \"npm run start\"",
+    "deploy": "serverless deploy"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,7 @@
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
+    "serverless-http": "^3.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   },
