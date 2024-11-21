@@ -22,3 +22,5 @@ const organization_routes_1 = __importDefault(require("./routes/organization.rou
 app.use("/api/v1/user", investor_routes_1.default);
 app.use("/api/v1/company", company_routes_1.default);
 app.use("/api/v1/organization", organization_routes_1.default);
+
+app.get("/", (req, res) => res.status(500).json({ "msg": "hello home...." }));

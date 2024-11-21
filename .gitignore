@@ -12,6 +12,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 testData.json
 insertData.js
+serverless.yml
 
 # Runtime data
 pids
