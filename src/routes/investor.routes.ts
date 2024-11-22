@@ -13,7 +13,8 @@ import {
     saveToList,
     removeFromSaveList,
     getAllSaveListData,
-    removeAllSaveListItems
+    removeAllSaveListItems,
+    reviewToApp
 } from "../controllers/investor.controller";
 import verifyJWT from "../middlewares/auth.middleware";
 import { getAllMessages, sendMessage } from "../controllers/message.controller";
@@ -38,5 +39,7 @@ router.post("/send-message", verifyJWT, sendMessage);
 router.get("/get-all-messages", verifyJWT, getAllMessages);
 router.post("/add-in-savelist", verifyJWT, addInSaveList);
 router.get("/get-current-user", verifyJWT, getCurrentUser);
+
+router.post("/send-review", verifyJWT, reviewToApp);
 
 export default router;
