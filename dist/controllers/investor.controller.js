@@ -33,7 +33,6 @@ function isValidPassword(password) {
     const uppercaseRegex = /[A-Z]/;
     const digitRegex = /[0-9]/;
     const specialCharRegex = /[@$!%*?&]/;
-
     if (!passwordLenRegex.test(password)) {
         return { isValid: false, message: "Password must be at least 8 characters long." };
     }
@@ -41,7 +40,7 @@ function isValidPassword(password) {
         return { isValid: false, message: "Password must contain at least one lowercase letter." };
     }
     if (!uppercaseRegex.test(password)) {
-        return { isValid: false, message: "Password must contain at least one uppercase letter." };
+        return { isValid: false, message: "Password must contain at least one uppercase." };
     }
     if (!digitRegex.test(password)) {
         return { isValid: false, message: "Password must contain at least one digit." };
