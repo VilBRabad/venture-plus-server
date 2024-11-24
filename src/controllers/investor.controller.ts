@@ -5,6 +5,7 @@ import { InvestorProfile } from "../models/investorProfile.model";
 import mongoose from "mongoose";
 import { Organization } from "../models/organization.model";
 import { Review } from "../models/review.model";
+import { OrgsReview } from "../models/orgsReview.model";
 
 const options = {
     httpOnly: true,
@@ -373,6 +374,29 @@ const reviewToApp = async (req: Request, res: Response) => {
     }
 }
 
+const reviewToCompany = async (req: Request, res: Response) => {
+    try {
+        const { comapnyId, star = undefined, message } = req.body;
+        const user = req.user;
+
+        if (!comapnyId || !message) return res.status(402).json(new ApiError(402, "Message & company Id requies!"));
+
+        if (!user) return res.status(401).json(new ApiError(401, "Un-authorised request"));
+
+        const review = OrgsReview.create({
+            star,
+            message,
+            user: user._id,
+            organization: new mongoose.Types.ObjectId(comapnyId as string)
+        });
+
+        if (!review) throw new Error("Error while creating review!");
+
+        return res.status(201).json(new ApiResponse(201, {}));
+    } catch (error) {
+        return res.status(500).json(new ApiError(500));
+    }
+}
 
 export {
     registerUser,
@@ -386,5 +410,6 @@ export {
     removeFromSaveList,
     getAllSaveListData,
     removeAllSaveListItems,
-    reviewToApp
+    reviewToApp,
+    reviewToCompany
 }

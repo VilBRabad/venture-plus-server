@@ -1,6 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
+import { IInvestor } from "./investor.model";
 
-const reviewSchema = new mongoose.Schema({
+export interface IReview extends Document {
+    star?: number;
+    message: string;
+    user: IInvestor;
+}
+
+
+const reviewSchema = new Schema<IReview>({
     star: {
         type: Number
     },
