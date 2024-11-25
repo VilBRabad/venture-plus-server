@@ -15,7 +15,8 @@ import {
     getAllSaveListData,
     removeAllSaveListItems,
     reviewToApp,
-    reviewToCompany
+    reviewToCompany,
+    getLatestComapnyReviews
 } from "../controllers/investor.controller";
 import verifyJWT from "../middlewares/auth.middleware";
 import { getAllMessages, sendMessage } from "../controllers/message.controller";
@@ -44,5 +45,6 @@ router.get("/get-current-user", verifyJWT, getCurrentUser);
 //Reviews
 router.post("/send-review", verifyJWT, reviewToApp);
 router.post("/send-review-to-company", verifyJWT, reviewToCompany);
+router.get("/get-latest-reviews", getLatestComapnyReviews);
 
 export default router;

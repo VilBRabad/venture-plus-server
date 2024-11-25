@@ -20,12 +20,12 @@ const orgsReviewSchema = new mongoose.Schema<IOrgsReview>({
     user: {
         type: mongoose.Types.ObjectId,
         ref: "Investor",
-        required: true
+        required: [true, "User reference required!"]
     },
     organization: {
         type: mongoose.Types.ObjectId,
         ref: "Organization",
-        required: true
+        required: [true, "Organizations reference required!"]
     }
 }, { timestamps: true });
 

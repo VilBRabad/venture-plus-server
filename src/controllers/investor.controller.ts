@@ -351,24 +351,42 @@ const removeAllSaveListItems = async (req: Request, res: Response) => {
 
 const reviewToApp = async (req: Request, res: Response) => {
     try {
-        const { star = undefined, message } = req.body;
+        const { star, message } = req.body;
         const user = req.user;
 
         if (!user) return res.status(402).json(new ApiError(402, "Un-authorised request"));
 
-        if (!message) {
+        if (!message || !star) {
             return res.status(401).json(new ApiError(401, "message must be!"));
         }
 
-        const review = Review.create({
-            star,
-            message,
-            user: new mongoose.Types.ObjectId(user._id as string)
-        });
+        try {
+            const fetchResponse = await fetch(`${process.env.FLASK_SERVER_URL}/analyze-review`, {
+                body: JSON.stringify({
+                    text: message
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                method: "POST"
+            });
+            const resData = await fetchResponse.json();
+            const isPositive = resData.sentiment === 1 ? true : false;
 
-        if (!review) throw new Error("Error while sending review");
+            const review = await Review.create({
+                star,
+                message,
+                user: new mongoose.Types.ObjectId(user._id as string),
+                isPositive
+            });
 
-        return res.status(201).json(new ApiResponse(201, {}));
+            if (!review) throw new Error("Error while sending review");
+
+            return res.status(201).json(new ApiResponse(201, {}));
+        } catch (error) {
+            return res.status(401).json(new ApiError(401, "Error while sentiment analysis!"));
+        }
     } catch (error) {
         return res.status(500).json(new ApiError(500));
     }
@@ -376,18 +394,18 @@ const reviewToApp = async (req: Request, res: Response) => {
 
 const reviewToCompany = async (req: Request, res: Response) => {
     try {
-        const { comapnyId, star = undefined, message } = req.body;
+        const { companyId, star = undefined, message } = req.body;
         const user = req.user;
 
-        if (!comapnyId || !message) return res.status(402).json(new ApiError(402, "Message & company Id requies!"));
+        if (!companyId || !message) return res.status(402).json(new ApiError(402, "Message & company Id requies!"));
 
         if (!user) return res.status(401).json(new ApiError(401, "Un-authorised request"));
 
-        const review = OrgsReview.create({
+        const review = await OrgsReview.create({
             star,
             message,
-            user: user._id,
-            organization: new mongoose.Types.ObjectId(comapnyId as string)
+            user: new mongoose.Types.ObjectId(user._id as string),
+            organization: new mongoose.Types.ObjectId(companyId as string)
         });
 
         if (!review) throw new Error("Error while creating review!");
@@ -397,6 +415,61 @@ const reviewToCompany = async (req: Request, res: Response) => {
         return res.status(500).json(new ApiError(500));
     }
 }
+
+const getLatestComapnyReviews = async (req: Request, res: Response) => {
+    try {
+        const { page = 1, limit = 10, companyId } = req.query;
+
+
+        if (!companyId) return res.status(401).json(new ApiError(401, "Company Id required!"));
+
+        const skip = (Number(page) - 1) * Number(limit);
+        const reviews = await OrgsReview.aggregate([
+            {
+                $match: {
+                    organization: new mongoose.Types.ObjectId(companyId as string)
+                }
+            },
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            },
+            {
+                $lookup: {
+                    from: "investors",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: "$userDetails"
+            },
+            {
+                $project: {
+                    star: 1,
+                    message: 1,
+                    createdAt: 1,
+                    "userDetails.name": 1,
+                    "userDetails.address": 1
+                }
+            },
+            {
+                $skip: skip
+            },
+            {
+                $limit: Number(limit)
+            }
+        ])
+        console.log(reviews);
+
+        return res.status(201).json(new ApiResponse(201, reviews));
+    } catch (error) {
+        return res.status(500).json(new ApiError(500));
+    }
+}
+
 
 export {
     registerUser,
@@ -411,5 +484,6 @@ export {
     getAllSaveListData,
     removeAllSaveListItems,
     reviewToApp,
-    reviewToCompany
+    reviewToCompany,
+    getLatestComapnyReviews
 }
