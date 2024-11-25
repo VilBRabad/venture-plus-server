@@ -116,7 +116,6 @@ const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.logoutUser = logoutUser;
 const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     try {
         const { address, focus, fundingAmount, geographicPreferences } = req.body;
         const user = req.user;
@@ -127,7 +126,17 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const existProfile = yield investorProfile_model_1.InvestorProfile.findOne({ investor: user._id });
         if (existProfile) {
-            (_a = existProfile.focus) === null || _a === void 0 ? void 0 : _a.push(...focus);
+            // const focusSet = new Set()
+            // if (existProfile.focus && Array.isArray(existProfile.focus) && existProfile.focus.length > 0) {
+            //     existProfile.focus.forEach((item) => focusSet.add(item));
+            // }
+            // console.log(focusSet);
+            // if (Array.isArray(focus) && focus.length > 0) {
+            //     focus.forEach((item) => focusSet.add(item));
+            // }
+            // const uniqueFocus = Array.from(focusSet) as string[];
+            // console.log(uniqueFocus);
+            existProfile.focus = focus;
             existProfile.fundingAmount = fundingAmount;
             existProfile.geographicPreferences = geographicPreferences;
             yield existProfile.save();
@@ -389,6 +398,7 @@ exports.reviewToCompany = reviewToCompany;
 const getLatestComapnyReviews = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { page = 1, limit = 10, companyId } = req.query;
+        console.log(companyId);
         if (!companyId)
             return res.status(401).json(new utils_1.ApiError(401, "Company Id required!"));
         const skip = (Number(page) - 1) * Number(limit);

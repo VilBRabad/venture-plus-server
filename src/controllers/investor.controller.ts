@@ -135,7 +135,21 @@ const updateProfile = async (req: Request, res: Response) => {
         const existProfile = await InvestorProfile.findOne({ investor: user._id });
 
         if (existProfile) {
-            existProfile.focus?.push(...focus);
+            // const focusSet = new Set()
+            // if (existProfile.focus && Array.isArray(existProfile.focus) && existProfile.focus.length > 0) {
+            //     existProfile.focus.forEach((item) => focusSet.add(item));
+            // }
+
+            // console.log(focusSet);
+
+            // if (Array.isArray(focus) && focus.length > 0) {
+            //     focus.forEach((item) => focusSet.add(item));
+            // }
+
+            // const uniqueFocus = Array.from(focusSet) as string[];
+            // console.log(uniqueFocus);
+
+            existProfile.focus = focus;
             existProfile.fundingAmount = fundingAmount;
             existProfile.geographicPreferences = geographicPreferences;
 
@@ -420,7 +434,7 @@ const getLatestComapnyReviews = async (req: Request, res: Response) => {
     try {
         const { page = 1, limit = 10, companyId } = req.query;
 
-
+        console.log(companyId);
         if (!companyId) return res.status(401).json(new ApiError(401, "Company Id required!"));
 
         const skip = (Number(page) - 1) * Number(limit);

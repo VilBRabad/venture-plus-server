@@ -16,6 +16,7 @@ exports.getCompanyLocations = exports.getIndustryTypes = exports.getCompanyNames
 const utils_1 = require("../utils");
 const organization_model_1 = require("../models/organization.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+const investorProfile_model_1 = require("../models/investorProfile.model");
 function suffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -28,6 +29,7 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" } = req.query;
         // const user = req.user;
         const token = req.headers.authorization; // should be bearer token
+        const user = req.user;
         let recommendedCompanies = [];
         if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1) {
             try {
@@ -42,6 +44,7 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 const resData = yield fetchResponse.json();
                 const data = resData.data;
                 const ids = data.map((id) => new mongoose_1.default.Types.ObjectId(id));
+                // console.log(data);
                 if (data && Array.isArray(data) && data.length > 0) {
                     const suffleIds = suffleArray([...ids]);
                     const companies = yield organization_model_1.Organization.aggregate([
@@ -59,7 +62,7 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
                     if (companies.length >= 7) {
-                        return res.status(201).json(new utils_1.ApiResponse(201, { data: companies, totalPages: 2 }));
+                        return res.status(201).json(new utils_1.ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));
                     }
                 }
             }
@@ -95,13 +98,28 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 $count: "totalCount"
             }
         ]);
+        if (pipeline.length === 0) {
+            if (user) {
+                const userProfile = yield investorProfile_model_1.InvestorProfile.findOne({ investor: user._id });
+                if (userProfile && userProfile.geographicPreferences && userProfile.focus) {
+                    pipeline.push({
+                        $match: {
+                            $or: [
+                                { Country: userProfile.geographicPreferences },
+                                { Industry: { $in: userProfile.focus } }
+                            ]
+                        }
+                    });
+                }
+            }
+        }
         const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
         // Step 2: Calculate number of pages
         const totalPages = Math.ceil(totalCount / limit);
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
         const orgs = yield organization_model_1.Organization.aggregate(pipeline);
-        return res.status(201).json(new utils_1.ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages }));
+        return res.status(201).json(new utils_1.ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages, isRecommendation: recommendedCompanies.length > 0 ? true : false }));
     }
     catch (error) {
         return res.status(500).json(new utils_1.ApiError(500));
