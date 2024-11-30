@@ -13,13 +13,13 @@ interface RequestBody {
     revenue?: string;
 }
 
-function suffleArray(array: string[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
+// function suffleArray(array: string[]) {
+//     for (let i = array.length - 1; i > 0; i--) {
+//         const j = Math.floor(Math.random() * (i + 1));
+//         [array[i], array[j]] = [array[j], array[i]];
+//     }
+//     return array;
+// }
 
 const getOrganizations = async (req: Request, res: Response) => {
     try {
@@ -30,8 +30,9 @@ const getOrganizations = async (req: Request, res: Response) => {
 
         let recommendedCompanies = [];
 
-        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1) {
+        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1 && user) {
             try {
+                // console.log(process.env.FLASK_SERVER_URL);
                 const fetchResponse = await fetch(`${process.env.FLASK_SERVER_URL}/recommend`, {
                     headers: {
                         'Authorization': token,
@@ -46,16 +47,35 @@ const getOrganizations = async (req: Request, res: Response) => {
                 const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
 
                 // console.log(data);
+                const userProfile = await InvestorProfile.findOne({ investor: user._id });
 
                 if (data && Array.isArray(data) && data.length > 0) {
-                    const suffleIds = suffleArray([...ids]);
+                    // const suffleIds = suffleArray([...ids]);
                     const companies = await Organization.aggregate([
                         {
                             $match: {
                                 _id: {
-                                    $in: suffleIds
+                                    $in: ids
                                 }
                             }
+                        },
+                        {
+                            $addFields: {
+                                sortKey: {
+                                    $cond: {
+                                        if: { $eq: ["$Country", userProfile && userProfile.geographicPreferences ? userProfile.geographicPreferences : ""] },
+                                        then: 0,
+                                        else: 1
+                                    }
+                                },
+                                sortIndex: { $indexOfArray: [ids, "$_id"] }
+                            }
+                        },
+                        {
+                            $sort: { sortKey: 1, sortIndex: 1 }
+                        },
+                        {
+                            $project: { sortKey: 0, sortIndex: 0 }
                         },
                         {
                             $limit: 20
@@ -64,7 +84,7 @@ const getOrganizations = async (req: Request, res: Response) => {
 
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
-                    console.log("RECO LEN: ", recommendedCompanies.length);
+                    // console.log("RECO LEN: ", recommendedCompanies.length);
 
                     if (companies.length > 7) {
                         return res.status(201).json(new ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));

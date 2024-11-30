@@ -17,13 +17,13 @@ const utils_1 = require("../utils");
 const organization_model_1 = require("../models/organization.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const investorProfile_model_1 = require("../models/investorProfile.model");
-function suffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
+// function suffleArray(array: string[]) {
+//     for (let i = array.length - 1; i > 0; i--) {
+//         const j = Math.floor(Math.random() * (i + 1));
+//         [array[i], array[j]] = [array[j], array[i]];
+//     }
+//     return array;
+// }
 const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" } = req.query;
@@ -31,8 +31,9 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const token = req.headers.authorization; // should be bearer token
         const user = req.user;
         let recommendedCompanies = [];
-        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1) {
+        if (token && industries.length === 0 && countries.length === 0 && !revenue && page <= 1 && user) {
             try {
+                // console.log(process.env.FLASK_SERVER_URL);
                 const fetchResponse = yield fetch(`${process.env.FLASK_SERVER_URL}/recommend`, {
                     headers: {
                         'Authorization': token,
@@ -45,15 +46,34 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 const data = resData.data;
                 const ids = data.map((id) => new mongoose_1.default.Types.ObjectId(id));
                 // console.log(data);
+                const userProfile = yield investorProfile_model_1.InvestorProfile.findOne({ investor: user._id });
                 if (data && Array.isArray(data) && data.length > 0) {
-                    const suffleIds = suffleArray([...ids]);
+                    // const suffleIds = suffleArray([...ids]);
                     const companies = yield organization_model_1.Organization.aggregate([
                         {
                             $match: {
                                 _id: {
-                                    $in: suffleIds
+                                    $in: ids
                                 }
                             }
+                        },
+                        {
+                            $addFields: {
+                                sortKey: {
+                                    $cond: {
+                                        if: { $eq: ["$Country", userProfile && userProfile.geographicPreferences ? userProfile.geographicPreferences : ""] },
+                                        then: 0,
+                                        else: 1
+                                    }
+                                },
+                                sortIndex: { $indexOfArray: [ids, "$_id"] }
+                            }
+                        },
+                        {
+                            $sort: { sortKey: 1, sortIndex: 1 }
+                        },
+                        {
+                            $project: { sortKey: 0, sortIndex: 0 }
                         },
                         {
                             $limit: 20
@@ -61,7 +81,7 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                     ]);
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
-                    console.log("RECO LEN: ", recommendedCompanies.length);
+                    // console.log("RECO LEN: ", recommendedCompanies.length);
                     if (companies.length > 7) {
                         return res.status(201).json(new utils_1.ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));
                     }
