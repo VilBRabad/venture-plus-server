@@ -64,8 +64,9 @@ const getOrganizations = async (req: Request, res: Response) => {
 
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
+                    console.log("RECO LEN: ", recommendedCompanies.length);
 
-                    if (companies.length >= 7) {
+                    if (companies.length > 7) {
                         return res.status(201).json(new ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));
                     }
                 }
@@ -107,16 +108,17 @@ const getOrganizations = async (req: Request, res: Response) => {
             }
         ])
 
-        if (pipeline.length === 0) {
+        if (pipeline.length === 0 && page <= 1) {
             if (user) {
                 const userProfile = await InvestorProfile.findOne({ investor: user._id });
 
+                // console.log((userProfile && userProfile.focus) ? userProfile.focus : "Vilas");
                 if (userProfile && userProfile.geographicPreferences && userProfile.focus) {
                     pipeline.push({
                         $match: {
                             $or: [
                                 { Country: userProfile.geographicPreferences },
-                                { Industry: { $in: userProfile.focus } }
+                                { Industry: { $in: [...userProfile.focus] } }
                             ]
                         }
                     })
@@ -133,7 +135,10 @@ const getOrganizations = async (req: Request, res: Response) => {
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
 
-        const orgs = await Organization.aggregate(pipeline);
+        const orgs = await Organization.aggregate([
+            ...pipeline
+        ]);
+
 
         return res.status(201).json(new ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages, isRecommendation: recommendedCompanies.length > 0 ? true : false }));
     } catch (error) {

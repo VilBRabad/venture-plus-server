@@ -61,7 +61,8 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                     ]);
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
-                    if (companies.length >= 7) {
+                    console.log("RECO LEN: ", recommendedCompanies.length);
+                    if (companies.length > 7) {
                         return res.status(201).json(new utils_1.ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));
                     }
                 }
@@ -98,15 +99,16 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 $count: "totalCount"
             }
         ]);
-        if (pipeline.length === 0) {
+        if (pipeline.length === 0 && page <= 1) {
             if (user) {
                 const userProfile = yield investorProfile_model_1.InvestorProfile.findOne({ investor: user._id });
+                // console.log((userProfile && userProfile.focus) ? userProfile.focus : "Vilas");
                 if (userProfile && userProfile.geographicPreferences && userProfile.focus) {
                     pipeline.push({
                         $match: {
                             $or: [
                                 { Country: userProfile.geographicPreferences },
-                                { Industry: { $in: userProfile.focus } }
+                                { Industry: { $in: [...userProfile.focus] } }
                             ]
                         }
                     });
@@ -118,7 +120,9 @@ const getOrganizations = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const totalPages = Math.ceil(totalCount / limit);
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
-        const orgs = yield organization_model_1.Organization.aggregate(pipeline);
+        const orgs = yield organization_model_1.Organization.aggregate([
+            ...pipeline
+        ]);
         return res.status(201).json(new utils_1.ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages, isRecommendation: recommendedCompanies.length > 0 ? true : false }));
     }
     catch (error) {

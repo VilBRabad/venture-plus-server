@@ -440,7 +440,7 @@ const getLatestComapnyReviews = (req, res) => __awaiter(void 0, void 0, void 0, 
                 $limit: Number(limit)
             }
         ]);
-        console.log(reviews);
+        // console.log(reviews);
         return res.status(201).json(new utils_1.ApiResponse(201, reviews));
     }
     catch (error) {

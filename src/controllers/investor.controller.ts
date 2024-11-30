@@ -476,7 +476,7 @@ const getLatestComapnyReviews = async (req: Request, res: Response) => {
                 $limit: Number(limit)
             }
         ])
-        console.log(reviews);
+        // console.log(reviews);
 
         return res.status(201).json(new ApiResponse(201, reviews));
     } catch (error) {
