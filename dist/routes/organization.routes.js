@@ -9,7 +9,7 @@ const organization_controller_1 = require("../controllers/organization.controlle
 const getUser_1 = __importDefault(require("../middlewares/getUser"));
 // import fetchUser from "../middlewares/getUser";
 //TODO: Add middleware in  get-org-by-id
-router.get("/get-organization", organization_controller_1.getOrganizations);
+router.get("/get-organization", getUser_1.default, organization_controller_1.getOrganizations);
 router.get("/get-organization-by-id", getUser_1.default, organization_controller_1.getOrganizationById);
 router.get("/get-organization-by-name", organization_controller_1.getOrganizationByName);
 router.get("/get-organization-names", organization_controller_1.getCompanyNames);

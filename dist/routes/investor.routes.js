@@ -24,4 +24,8 @@ router.post("/send-message", auth_middleware_1.default, message_controller_1.sen
 router.get("/get-all-messages", auth_middleware_1.default, message_controller_1.getAllMessages);
 router.post("/add-in-savelist", auth_middleware_1.default, investor_controller_1.addInSaveList);
 router.get("/get-current-user", auth_middleware_1.default, investor_controller_1.getCurrentUser);
+//Reviews
+router.post("/send-review", auth_middleware_1.default, investor_controller_1.reviewToApp);
+router.post("/send-review-to-company", auth_middleware_1.default, investor_controller_1.reviewToCompany);
+router.get("/get-latest-reviews", investor_controller_1.getLatestComapnyReviews);
 exports.default = router;

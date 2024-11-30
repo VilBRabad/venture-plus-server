@@ -1,6 +1,6 @@
 import mongoose, { Document } from "mongoose";
 
-interface IInvestorProfile extends Document {
+export interface IInvestorProfile extends Document {
     focus?: string[];
     fundingAmount?: string;
     geographicPreferences?: string;

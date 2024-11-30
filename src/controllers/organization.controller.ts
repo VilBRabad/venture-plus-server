@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ApiError, ApiResponse } from "../utils";
 import { Organization } from "../models/organization.model";
 import mongoose from "mongoose";
+import { InvestorProfile } from "../models/investorProfile.model";
 
 interface RequestBody {
     page?: number;
@@ -25,6 +26,7 @@ const getOrganizations = async (req: Request, res: Response) => {
         const { page = 1, limit = 15, asc = 1, industries = [], countries = [], revenue = "" }: RequestBody = req.query;
         // const user = req.user;
         const token = req.headers.authorization; // should be bearer token
+        const user = req.user;
 
         let recommendedCompanies = [];
 
@@ -43,6 +45,8 @@ const getOrganizations = async (req: Request, res: Response) => {
                 const data = resData.data;
                 const ids = data.map((id: string) => new mongoose.Types.ObjectId(id));
 
+                // console.log(data);
+
                 if (data && Array.isArray(data) && data.length > 0) {
                     const suffleIds = suffleArray([...ids]);
                     const companies = await Organization.aggregate([
@@ -60,9 +64,10 @@ const getOrganizations = async (req: Request, res: Response) => {
 
                     // console.log("Companies: ", companies);
                     recommendedCompanies = companies;
+                    console.log("RECO LEN: ", recommendedCompanies.length);
 
-                    if (companies.length >= 7) {
-                        return res.status(201).json(new ApiResponse(201, { data: companies, totalPages: 2 }));
+                    if (companies.length > 7) {
+                        return res.status(201).json(new ApiResponse(201, { data: companies, totalPages: 2, isRecommendation: true }));
                     }
                 }
             } catch (error) {
@@ -103,6 +108,24 @@ const getOrganizations = async (req: Request, res: Response) => {
             }
         ])
 
+        if (pipeline.length === 0 && page <= 1) {
+            if (user) {
+                const userProfile = await InvestorProfile.findOne({ investor: user._id });
+
+                // console.log((userProfile && userProfile.focus) ? userProfile.focus : "Vilas");
+                if (userProfile && userProfile.geographicPreferences && userProfile.focus) {
+                    pipeline.push({
+                        $match: {
+                            $or: [
+                                { Country: userProfile.geographicPreferences },
+                                { Industry: { $in: [...userProfile.focus] } }
+                            ]
+                        }
+                    })
+                }
+            }
+        }
+
 
         const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0;
 
@@ -112,9 +135,12 @@ const getOrganizations = async (req: Request, res: Response) => {
         pipeline.push({ $skip: (Number(page) - 1) * Number(limit) });
         pipeline.push({ $limit: Number(limit) });
 
-        const orgs = await Organization.aggregate(pipeline);
+        const orgs = await Organization.aggregate([
+            ...pipeline
+        ]);
 
-        return res.status(201).json(new ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages }));
+
+        return res.status(201).json(new ApiResponse(201, { data: [...recommendedCompanies, ...orgs], totalPages, isRecommendation: recommendedCompanies.length > 0 ? true : false }));
     } catch (error) {
         return res.status(500).json(new ApiError(500));
     }

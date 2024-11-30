@@ -1,7 +1,7 @@
 import { Document, Schema, model } from 'mongoose';
 
 
-interface IOrganization extends Document {
+export interface IOrganization extends Document {
     Company: string;
     Company_name_for_email?: string;
     Account_stage?: string;

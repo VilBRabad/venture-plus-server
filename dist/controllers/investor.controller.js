@@ -12,12 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeAllSaveListItems = exports.getAllSaveListData = exports.removeFromSaveList = exports.saveToList = exports.getUserHistory = exports.getCurrentUser = exports.addInSaveList = exports.updateProfile = exports.logoutUser = exports.loginUser = exports.registerUser = void 0;
+exports.getLatestComapnyReviews = exports.reviewToCompany = exports.reviewToApp = exports.removeAllSaveListItems = exports.getAllSaveListData = exports.removeFromSaveList = exports.saveToList = exports.getUserHistory = exports.getCurrentUser = exports.addInSaveList = exports.updateProfile = exports.logoutUser = exports.loginUser = exports.registerUser = void 0;
 const utils_1 = require("../utils");
 const investor_model_1 = require("../models/investor.model");
 const investorProfile_model_1 = require("../models/investorProfile.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const organization_model_1 = require("../models/organization.model");
+const review_model_1 = require("../models/review.model");
+const orgsReview_model_1 = require("../models/orgsReview.model");
 const options = {
     httpOnly: true,
     secure: true,
@@ -114,7 +116,6 @@ const logoutUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.logoutUser = logoutUser;
 const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     try {
         const { address, focus, fundingAmount, geographicPreferences } = req.body;
         const user = req.user;
@@ -125,7 +126,17 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const existProfile = yield investorProfile_model_1.InvestorProfile.findOne({ investor: user._id });
         if (existProfile) {
-            (_a = existProfile.focus) === null || _a === void 0 ? void 0 : _a.push(...focus);
+            // const focusSet = new Set()
+            // if (existProfile.focus && Array.isArray(existProfile.focus) && existProfile.focus.length > 0) {
+            //     existProfile.focus.forEach((item) => focusSet.add(item));
+            // }
+            // console.log(focusSet);
+            // if (Array.isArray(focus) && focus.length > 0) {
+            //     focus.forEach((item) => focusSet.add(item));
+            // }
+            // const uniqueFocus = Array.from(focusSet) as string[];
+            // console.log(uniqueFocus);
+            existProfile.focus = focus;
             existProfile.fundingAmount = fundingAmount;
             existProfile.geographicPreferences = geographicPreferences;
             yield existProfile.save();
@@ -320,3 +331,120 @@ const removeAllSaveListItems = (req, res) => __awaiter(void 0, void 0, void 0, f
     }
 });
 exports.removeAllSaveListItems = removeAllSaveListItems;
+const reviewToApp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { star, message } = req.body;
+        const user = req.user;
+        if (!user)
+            return res.status(402).json(new utils_1.ApiError(402, "Un-authorised request"));
+        if (!message || !star) {
+            return res.status(401).json(new utils_1.ApiError(401, "message must be!"));
+        }
+        try {
+            const fetchResponse = yield fetch(`${process.env.FLASK_SERVER_URL}/analyze-review`, {
+                body: JSON.stringify({
+                    text: message
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                method: "POST"
+            });
+            const resData = yield fetchResponse.json();
+            const isPositive = resData.sentiment === 1 ? true : false;
+            const review = yield review_model_1.Review.create({
+                star,
+                message,
+                user: new mongoose_1.default.Types.ObjectId(user._id),
+                isPositive
+            });
+            if (!review)
+                throw new Error("Error while sending review");
+            return res.status(201).json(new utils_1.ApiResponse(201, {}));
+        }
+        catch (error) {
+            return res.status(401).json(new utils_1.ApiError(401, "Error while sentiment analysis!"));
+        }
+    }
+    catch (error) {
+        return res.status(500).json(new utils_1.ApiError(500));
+    }
+});
+exports.reviewToApp = reviewToApp;
+const reviewToCompany = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { companyId, star = undefined, message } = req.body;
+        const user = req.user;
+        if (!companyId || !message)
+            return res.status(402).json(new utils_1.ApiError(402, "Message & company Id requies!"));
+        if (!user)
+            return res.status(401).json(new utils_1.ApiError(401, "Un-authorised request"));
+        const review = yield orgsReview_model_1.OrgsReview.create({
+            star,
+            message,
+            user: new mongoose_1.default.Types.ObjectId(user._id),
+            organization: new mongoose_1.default.Types.ObjectId(companyId)
+        });
+        if (!review)
+            throw new Error("Error while creating review!");
+        return res.status(201).json(new utils_1.ApiResponse(201, {}));
+    }
+    catch (error) {
+        return res.status(500).json(new utils_1.ApiError(500));
+    }
+});
+exports.reviewToCompany = reviewToCompany;
+const getLatestComapnyReviews = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { page = 1, limit = 10, companyId } = req.query;
+        console.log(companyId);
+        if (!companyId)
+            return res.status(401).json(new utils_1.ApiError(401, "Company Id required!"));
+        const skip = (Number(page) - 1) * Number(limit);
+        const reviews = yield orgsReview_model_1.OrgsReview.aggregate([
+            {
+                $match: {
+                    organization: new mongoose_1.default.Types.ObjectId(companyId)
+                }
+            },
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            },
+            {
+                $lookup: {
+                    from: "investors",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: "$userDetails"
+            },
+            {
+                $project: {
+                    star: 1,
+                    message: 1,
+                    createdAt: 1,
+                    "userDetails.name": 1,
+                    "userDetails.address": 1
+                }
+            },
+            {
+                $skip: skip
+            },
+            {
+                $limit: Number(limit)
+            }
+        ]);
+        // console.log(reviews);
+        return res.status(201).json(new utils_1.ApiResponse(201, reviews));
+    }
+    catch (error) {
+        return res.status(500).json(new utils_1.ApiError(500));
+    }
+});
+exports.getLatestComapnyReviews = getLatestComapnyReviews;
